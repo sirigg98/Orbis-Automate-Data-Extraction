@@ -50,6 +50,8 @@ def openbrowser():
 
 #saves list of firms to orbis profile for future access
 def save_firms(browser, svname):
+    
+    wait = WebDriverWait(browser, 10)
     savebtn = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR,"body > section.website > div.website__pre-content.area.area__stretchable > div > ul > li:nth-child(2) > a")))
     savebtn.click()
     
@@ -201,10 +203,11 @@ def orbis_auto(browser, ls):
             browser.refresh()
         
         #Every 150 firms, manually go and download data. The webpage cannot handle ~200 or more queries in one go i think.
-        if ls.index(firm)%100 == 0:   
+        if ls.index(firm)%2 == 0 & ls.index(firm) != 0:   
             svname = str(ls) + "_" + str(ls.index(firm)//100)
             print(f"{ls.index(firm)} firms completed")
-            input("Press Enter to Continue to next sublist")
+            save_firms(browser, svname)
+            export_df(browser, svname)
             revsearch = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR,"body > section.side-main > div > ul > li.search > a")))
             revsearch.click()
             
@@ -235,12 +238,22 @@ if __name__ == "__main__":
     firms3 = list(pd.read_csv(r"C:\Users\F0064WK\OneDrive - Tuck School of Business at Dartmouth College\Documents\US Tariff Exemptions\USTR data\Check_List3.csv").iloc[:,0])
     firms4 = list(pd.read_csv(r"C:\Users\F0064WK\OneDrive - Tuck School of Business at Dartmouth College\Documents\US Tariff Exemptions\USTR data\Check_List4.csv").iloc[:,1])
     
+   
     temp = firms2
-    firms2 = [temp[i] for i in range(150, 450)]
-    
+    firms2_ls= []
+    match = re.compile("LLC.|LLC|llc.|llc|LTD.|LTD|Ltd.|Ltd|ltd.|ltd|INC.|INC|Inc.|Inc|inc.|inc")
+    for i in temp:
+        pattern_split = re.split(match, i)
+        l = len(pattern_split[0].split())
+        i_ls = i.split()
+        try:
+            firms2_ls.append(str(pattern_split[0] + i_ls[l]))
+        except IndexError:
+            firms2_ls.append(i)
+        
     browser = openbrowser()
     missed_firms2 =  orbis_auto(browser, firms2)
-        
+     
     
     
     

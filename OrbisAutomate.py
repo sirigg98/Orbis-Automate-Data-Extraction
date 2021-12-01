@@ -50,7 +50,7 @@ def openbrowser():
 
 #saves list of firms to orbis profile for future access
 def save_firms(browser, svname):
-    savebtn = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR,"body > section.website > div.website__pre-content.area.area__stretchable > div > ul > li:nth-child(2) > a)))
+    savebtn = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR,"body > section.website > div.website__pre-content.area.area__stretchable > div > ul > li:nth-child(2) > a")))
     savebtn.click()
     
     nameenter = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR,"#name-field-5b34cdb74f4e40cd8c04e7095d8f3eb0")))
@@ -154,7 +154,7 @@ def orbis_auto(browser, ls):
     # Login with tuck creds and remember for 30 days. Then do all this to redirect from the lubrary webpage to orbis
     browser.get("https://search.library.dartmouth.edu/discovery/search?vid=01DCL_INST:01DCL")
     
-    wait = WebDriverWait(browser, 10)
+    wait = WebDriverWait(browser, 15)
     
     login = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "#signInBtn")))
     login.click()
@@ -195,22 +195,21 @@ def orbis_auto(browser, ls):
         #     revsearch = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR,"body > section.side-main > div > ul > li.search > a")))
         #     revsearch.click()
         if browser.current_url.endswith('Report'):
-            revsearch = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR,"body > section.side-main > div > ul > li.search > a")))
+            revsearch = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR,"body > section.side-main > div > ul > li.search > a")))
             revsearch.click()
         else:
             browser.refresh()
         
         #Every 150 firms, manually go and download data. The webpage cannot handle ~200 or more queries in one go i think.
-        if ls.index(firm)%150 == 0:   
-            svname = str(ls) + "_" + str(ls.index(firm)//150)
+        if ls.index(firm)%100 == 0:   
+            svname = str(ls) + "_" + str(ls.index(firm)//100)
             print(f"{ls.index(firm)} firms completed")
-            save_firms(browser, svname)
-            export_df(browser, svname)
-            revsearch = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR,"body > section.side-main > div > ul > li.search > a")))
+            input("Press Enter to Continue to next sublist")
+            revsearch = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR,"body > section.side-main > div > ul > li.search > a")))
             revsearch.click()
             
         
-        orbissearch = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "input#search")))
+        orbissearch = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "input#search")))
         orbissearch.send_keys(f"{firm}, United States of America")
         orbissearch.send_keys(Keys.ENTER)
         # If pop-up shows up to add new search to current selection of erase current selection
@@ -222,6 +221,7 @@ def orbis_auto(browser, ls):
         except TimeoutException:
             missed_firms.append(firm)
             continue
+        time.sleep(3)
 
     
     return missed_firms
@@ -234,6 +234,9 @@ if __name__ == "__main__":
     firms2 = list(pd.read_csv(r"C:\Users\F0064WK\OneDrive - Tuck School of Business at Dartmouth College\Documents\US Tariff Exemptions\USTR data\Check_List2_address.csv").iloc[:,0])
     firms3 = list(pd.read_csv(r"C:\Users\F0064WK\OneDrive - Tuck School of Business at Dartmouth College\Documents\US Tariff Exemptions\USTR data\Check_List3.csv").iloc[:,0])
     firms4 = list(pd.read_csv(r"C:\Users\F0064WK\OneDrive - Tuck School of Business at Dartmouth College\Documents\US Tariff Exemptions\USTR data\Check_List4.csv").iloc[:,1])
+    
+    temp = firms2
+    firms2 = [temp[i] for i in range(150, 450)]
     
     browser = openbrowser()
     missed_firms2 =  orbis_auto(browser, firms2)

@@ -27,6 +27,7 @@ from selenium.webdriver.support.expected_conditions import _find_element
 #Selenium excpetions
 from selenium.common.exceptions import NoSuchElementException, TimeoutException, ElementClickInterceptedException
 
+from difflib import SequenceMatcher
 #Misc
 import time
 import os
@@ -68,12 +69,11 @@ def export_df(browser):
     
     results = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR,"body > section.side-main > div > ul > li.results > a")))
     results.click()
-    try:
-        addcols = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR,"#main-content > div > div.results > div:nth-child(2) > a")))
-        addcols.click()
-    except:
-        addcols = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR,"#main-content > div > div.results > div:nth-child(2) > a")))
-        addcols.click()
+    
+    time.sleep(5)
+    addcols = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR,"#main-content > div > div.results > div:nth-child(2) > a")))
+    addcols.click()
+
     ###########Total assets last avail
     #Financial data 
     wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "#main-content > div > div.format-editor-widget > div:nth-child(1) > div > div:nth-child(2) > div > ul > li:nth-child(6) > div"))).click()
@@ -184,13 +184,6 @@ def export_df(browser):
     save = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "body > section.website > div:nth-child(6) > div.buttons.popup__buttons > a.button.ok")))
     save.click()
     
-    #std city
-    try: 
-        wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "#CONTACT_INFORMATION\*CONTACT_INFORMATION\.CITY_STANDARDIZED\:UNIVERSAL > div.icon-container > span"))).click()
-    except ElementClickInterceptedException:
-        wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "#CONTACT_INFORMATION\*CONTACT_INFORMATION\.CITY_STANDARDIZED\:UNIVERSAL > div.icon-container > span"))).click()
-    
-    
     apply = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "#main-content > div > div.list-edition-footer > form > div > input.button.ok")))
     apply.click()
     
@@ -207,6 +200,7 @@ def export_df(browser):
     
     time.sleep(15)
     browser.back()
+    wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "body > section.side-main > div > ul > li.search > a"))).click()
     wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "body > section.website > div.website__pre-content.area.area__stretchable > div > ul > li:nth-child(1) > a"))).click()
     wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "body > section.website > div:nth-child(6) > div.buttons.popup__buttons > a.button.ok"))).click()
     
@@ -281,6 +275,11 @@ def orbis_auto(browser, ls):
 
     
     return missed_firms
+
+def replace_all(text, dic):
+    for i, j in dic.items():
+        text = text.replace(i, j)
+    return text
         
         ##################################################################################
     
@@ -289,12 +288,44 @@ if __name__ == "__main__":
     firms1 = list(pd.read_csv(r"C:\Users\F0064WK\OneDrive - Tuck School of Business at Dartmouth College\Documents\US Tariff Exemptions\USTR data\Check_List1_address.csv").iloc[:,0])
     firms2 = list(pd.read_csv(r"C:\Users\F0064WK\OneDrive - Tuck School of Business at Dartmouth College\Documents\US Tariff Exemptions\USTR data\Check_List2_address.csv").iloc[:,0])
     firms3 = list(pd.read_csv(r"C:\Users\F0064WK\OneDrive - Tuck School of Business at Dartmouth College\Documents\US Tariff Exemptions\USTR data\Check_List3.csv").iloc[:,0])
+    firms3_2 = list(pd.read_csv(r"C:\Users\F0064WK\OneDrive - Tuck School of Business at Dartmouth College\Documents\US Tariff Exemptions\USTR data\CheckList3_2.csv").iloc[:,1])
     firms4 = list(pd.read_csv(r"C:\Users\F0064WK\OneDrive - Tuck School of Business at Dartmouth College\Documents\US Tariff Exemptions\USTR data\Check_List4.csv").iloc[:,1])
     
    
-    temp = firms1
-    firms1_ls= []
-    match = re.compile("LLC.|LLC|llc.|llc|LTD.|LTD|Ltd.|Ltd|ltd.|ltd|INC.|INC|Inc.|Inc|inc.|inc")
+    temp = [x for x in firms4 if x != "E  E CO LTD DBA JLA HOME"]
+    firms4_ls= []
+    match = re.compile("LLC.|LLC|llc.|llc|LTD.|LTD|Ltd.|Ltd|ltd.|ltd|INC.|INC|Inc.|Inc|inc.|inc|Corp.|Corp|Corporation|Company|Companies|Co")
+    match_dict = {"LLC.":"",
+                  "LLC": "",
+                  "llc.": "",
+                  "llc": "",
+                  "LTD.": "",
+                  "LTD":"",
+                  "Ltd.": "",
+                  "Ltd":"",
+                  "ltd.": "",
+                  "ltd": "",
+                  "INC.": "",
+                  "INC": "",
+                  "Inc.":"",
+                  "Inc":"",
+                  "inc.":"",
+                  "inc":"",
+                  "Incorporated": "",
+                  "incorporated":"",
+                  "corp.":"",
+                  "corp":"",
+                  "CORP": "",
+                  "corporation":"",
+                  "Company":"",
+                  "Companies":"",
+                  "Co":"",
+                  "co": "",
+                  ",": "", 
+                  "united states of america": "",
+                  "usa": "", "(":"", ")": "", "u.s.a":""}
+    
+    firmnames = []
     for i in temp:
         try:
             pattern_split = re.split(match, i)
@@ -303,18 +334,38 @@ if __name__ == "__main__":
         l = len(pattern_split[0].split())
         i_ls = i.split()
         try:
-            firms1_ls.append(pattern_split[0].replace(",", "") + i_ls[l])
+            firmnames.append([i, pattern_split[0].replace(",", "") + i_ls[l]])
         except IndexError:
-            firms1_ls.append(i)
+            firmnames.append([i, i])
             
-    firms1_ls = list(set(firms1_ls))
+    # firms3_ls = list(set(firms3_ls))
     
-    ls = [x for x in firms1_ls if firms1_ls.index(x) > 99]
-    ls1 = [x for x in ls if ls.index(x) > 102]
+    
+        
+    
+    firms_orbis = list(pd.read_csv(r"C:\Users\F0064WK\Downloads\CheckList4_firmsize_address.csv").iloc[:,1])
+    matched_names = []
+    
+    for i in firms_orbis:
+        print(firms_orbis.index(i))
+        orbisname = replace_all(i.lower(), match_dict)
+        for j in firmnames:
+            USTRname = replace_all(j[0].lower(), match_dict)
+            USTRname_ls = USTRname.split()
+            ratio = SequenceMatcher(None, orbisname, USTRname).ratio()
+            matched_names.append([i, j[0], j[1] + ", United States of America", ratio])
+            if ratio == 1:
+                break
+    match_names_df_temp = pd.DataFrame(matched_names, columns = ["Orbis Name", "USTR Name", "Search Term", "Fuzzy_Ratio"])
+    match_names_df = match_names_df_temp.sort_values("Fuzzy_Ratio", ascending = False).drop_duplicates("Orbis Name").set_index("Orbis Name")
 
-    browser = openbrowser()
-    missed_firms2 =  orbis_auto(browser, ls)
+    match_names_df.to_csv(r"C:\Users\F0064WK\Downloads\names4.csv")
+# # ls = [x for x in firms3_2_ls if firms3_2_ls.index(x) > 159
+
+#     # browser = openbrowser()
+#     # missed_firms2 =  orbis_auto(browser, ls)
      
+#     #export_df(browser)
     
     
     

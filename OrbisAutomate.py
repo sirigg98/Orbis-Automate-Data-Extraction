@@ -412,3 +412,109 @@ if __name__ == "__main__":
     # df = pd.DataFrame(matched_firms, columns=['orbis_name', 'ustr_name', 'search_term', 'match_ratio'])
     # df.to_csv(r'C:\Users\F0064WK\Downloads\crosswalk_1.csv')
     # #export_df(browser)
+
+################################################################################
+# Login with tuck creds and remember for 30 days. Then do all this to redirect from the lubrary webpage to orbis
+browser.get("https://search.library.dartmouth.edu/discovery/search?vid=01DCL_INST:01DCL")
+
+wait = WebDriverWait(browser, 10)
+
+login = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "#signInBtn")))
+login.click()
+
+loginpt2 = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, ".md-focused")))
+loginpt2.click()
+
+time.sleep(5)
+
+browser.get("https://search.library.dartmouth.edu/discovery/fulldisplay?docid=alma991001502079705706&context=L&vid=01DCL_INST:01DCL&lang=en&search_scope=MyInst_and_CI&adaptor=Local%20Search%20Engine&tab=All&query=any,contains,orbis&offset=0")
+
+toorbis = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "#getit_link1_0 > div > prm-full-view-service-container > div.section-body > div > prm-alma-viewit > prm-alma-viewit-items > md-list > div > md-list-item:nth-child(1) > div.in-element-dialog-context.layout-row.flex > div.md-list-item-text.layout-wrap.layout-row.flex > div > h5 > a")))
+toorbis.click()
+
+
+main = browser.window_handles[1]
+browser.switch_to.window(main)
+try:
+    restartsession = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "input.ok")))
+    restartsession.click()
+except TimeoutException:
+    print("Do not need to restart orbis session")
+# time.sleep(5)
+
+##################################################################################
+# matched_firms = []
+matched_firms = [x for x in matched_firms if matched_firms.index(x) <303]
+##################################################################################
+#Cycle through firm names, add to selection
+
+for firm in firmnames:   
+        
+    browser.refresh()
+    orbissearch = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "input#search")))
+    if firm[1] == '':
+        matched_firms.append(["", firm[0], firm[1]])
+        continue
+        
+    orbissearch.send_keys(f"{firm[1]}, United States of America")
+    orbissearch.send_keys(Keys.ENTER)
+    
+
+    print(firmnames.index(firm))
+    # If pop-up shows up to add new search to current selection of erase current selection
+    #Search for firm name, if no firm with name then move to next element in list
+    try:    
+        firstresult = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "#quicksearch-results > ul > li:nth-child(1)")))
+        orbisname = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "#quicksearch-results > ul > li:nth-child(1) > a > div.column.column-flex > div.column.column-name > p.name"))).text
+        matched_firms.append([orbisname, firm[0], firm[1]])
+        firstresult.click()
+        
+    #If no search matches, continue to next name on list
+    except TimeoutException:
+        matched_firms.append(["", firm[0], firm[1]])
+        continue
+    
+    if firmnames.index(firm)%100 == 0 or firmnames.index(firm) == len(firmnames)-1:
+        if firmnames.index(firm) != 0:
+            print('Exporting...')
+            export_df(browser)
+            print(f"{firmnames.index(firm)} firms completed. File exported.")
+        # save_firms(browser, svname)
+            revsearch = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR,"body > section.side-main > div > ul > li.search > a")))
+            revsearch.click()
+    
+    time.sleep(3)    
+        
+    if "report" in browser.current_url.lower():
+        revsearch = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR,"body > section.side-main > div > ul > li.search > a")))
+        revsearch.click()
+        time.sleep(3)
+
+for i in matched_firms:
+    i.append(SequenceMatcher(None, replace_all(i[1].lower(), match_dict), replace_all(i[0].lower(), match_dict)).ratio())
+    df = pd.DataFrame(matched_firms, columns = ['orbis_name', 'ustr_name', 'search_term', 'match_ratio'])
+    df.to_csv(r'C:\Users\F0064WK\Downloads\crosswalk_1.csv')
+    #export_df(browser)
+    
+    
+# ls1 = list(pd.read_csv(r'C:\Users\F0064WK\Downloads\crosswalk_2.csv').iloc[:,1])
+# ls2 = list(pd.read_csv(r'C:\Users\F0064WK\Downloads\crosswalk_2.csv').iloc[:,2])
+# ls3 = list(pd.read_csv(r'C:\Users\F0064WK\Downloads\crosswalk_2.csv').iloc[:,3])
+
+
+
+
+# ls = []
+# for i in range(len(ls1)):
+#     if isinstance(ls1[i], float) or isinstance(ls1[i], float):
+#         ls.append([ls1[i], ls2[i], ls3[i], 0])
+#         continue
+#     ls.append([ls1[i], ls2[i], ls3[i], SequenceMatcher(None, replace_all(ls1[i].lower(), match_dict), replace_all(ls2[i].lower()).ratio(), match_dict)])
+#     df = pd.DataFrame(matched_firms, columns = ['orbis_name', 'ustr_name', 'search_term', 'match_ratio'])
+#     df.to_csv(r'C:\Users\F0064WK\Downloads\crosswalk_2.csv')
+    
+    
+    
+    
+    
+    

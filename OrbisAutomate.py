@@ -80,7 +80,7 @@ def export_df(browser):
     #Financial data 
     wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "#main-content > div > div.format-editor-widget > div:nth-child(1) > div > div:nth-child(2) > div > ul > li:nth-child(6) > div"))).click()
     #Key financials
-    wait.untilcd(EC.element_to_be_clickable((By.CSS_SELECTOR, "#main-content > div > div.format-editor-widget > div:nth-child(1) > div > div:nth-child(2) > div > ul > li.with-nodes.opened.selected > ul > li:nth-child(2) > div"))).click()
+    wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "#main-content > div > div.format-editor-widget > div:nth-child(1) > div > div:nth-child(2) > div > ul > li.with-nodes.opened.selected > ul > li:nth-child(2) > div"))).click()
     #Total assets widget
     wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "#KEY_FINANCIALS\*KEY_FINANCIALS\.TOAS\:UNIVERSAL > div.text-container > span.px16.configuration.financialRepeat"))).click()
         
@@ -320,7 +320,15 @@ def replace_all(text, dic):
         
         ##################################################################################
     
-
+def export_batch(browser):
+    wait = WebDriverWait(browser, 10)
+    print('Exporting...')
+    export_df(browser)
+    print(f"{firmnames.index(firm)} firms completed. File exported.")
+# save_firms(browser, svname)
+    revsearch = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR,"body > section.side-main > div > ul > li.search > a")))
+    revsearch.click()
+    
 if __name__ == "__main__":
     firms1 = list(pd.read_csv(r"C:\Users\F0064WK\OneDrive - Tuck School of Business at Dartmouth College\Documents\US Tariff Exemptions\USTR data\Check_List1_address.csv").iloc[:,0])
     firms2 = list(pd.read_csv(r"C:\Users\F0064WK\OneDrive - Tuck School of Business at Dartmouth College\Documents\US Tariff Exemptions\USTR data\Check_List2_address.csv").iloc[:,0])
@@ -328,11 +336,18 @@ if __name__ == "__main__":
     firms3_2 = list(pd.read_csv(r"C:\Users\F0064WK\OneDrive - Tuck School of Business at Dartmouth College\Documents\US Tariff Exemptions\USTR data\CheckList3_2.csv").iloc[:,1])
     firms4 = list(pd.read_csv(r"C:\Users\F0064WK\OneDrive - Tuck School of Business at Dartmouth College\Documents\US Tariff Exemptions\USTR data\Check_List4.csv").iloc[:,1])
     
-   
-    temp = [x for x in firms1 if x != "E  E CO LTD DBA JLA HOME"]
+    match_2 = list(pd.read_csv(r"C:\Users\F0064WK\Downloads\crosswalk_2_DC.csv").iloc[:,2])
+    match_2 = [x for x in match_2 if not pd.isna(x)]
+    orbis_2 = list(pd.read_csv(r"C:\Users\F0064WK\Downloads\crosswalk_2_DC.csv").iloc[:,0])
+    
+    test = list(pd.read_csv(r"C:\Users\F0064WK\Downloads\test2.csv").iloc[:,0])
+    
+    
+    temp = []
+    temp = [x for x in test if x != "E  E CO LTD DBA JLA HOME"]
     temp = list(set(temp))
     firms3_ls= []
-    match = re.compile("llc.|llc|ltd.|ltd|inc.|inc|corp.|corporation|corp|company|companies|co.")
+    match = re.compile("llc.|llc|ltd.|ltd|inc.|inc|corp.|corporation|corp|company|companies|co\.")
     match_dict = {" llc.": "",
                   " llc": "",
                   " ltd.": "",
@@ -346,8 +361,6 @@ if __name__ == "__main__":
                   " corp":"",
                   " company":"",
                   " companies":"",
-                  " co.": "",
-                  " co": "",
                   ",": "", 
                   "united states of america": "",
                   "usa": "", 
@@ -356,8 +369,9 @@ if __name__ == "__main__":
                   " u.s.a":"", 
                   " +":"", 
                   " america" : ""}
-    
     firmnames = []
+    # temp = ["logitech inc"] 
+    # temp = ['Whirlpool Corp'] 
     for i in temp:
         if pd.isna(i):
             i = ''
@@ -378,12 +392,25 @@ if __name__ == "__main__":
             i_split = i.split("d/b/a")
             i = i_split[0]
             continue
+        if "DBA" in i:
+            i_split = i.split("dba")
+            i = i_split[0]
+            continue
+        if "D/B/A" in i:
+            i_split = i.split("d/b/a")
+            i = i_split[0]
+            continue
+        if "doing business as" in i:
+            i_split = i.split("doing business as")
+            i = i_split[0]
+            continue
+        
         try:
             firmnames.append([i, pattern_split[0] + i_ls[int(l+1)]])
         except IndexError:
             firmnames.append([i, i])
             
-    firmnames = [x for x in firmnames if firmnames.index(x)> 302]
+    # firmnames = [x for x in firmnames if firmnames.index(x)> 1611]
     # firms_orbis = list(pd.read_csv(r"C:\Users\F0064WK\Downloads\CheckList2_firmsize_address.csv").iloc[:,0])
     # matched_names = []
     
@@ -443,10 +470,13 @@ except TimeoutException:
 # time.sleep(5)
 
 ##################################################################################
-# matched_firms = []
-matched_firms = [x for x in matched_firms if matched_firms.index(x) <303]
+matched_firms = []
+# matched_firms = [x for x in matched_firms if matched_firms.index(x) <1678]
 ##################################################################################
 #Cycle through firm names, add to selection
+
+ORBIS_ID = re.compile("^[A-Z]{2}[*]?[0-9]{4,12}[-]?[0-9]{3}?[A-Z]?$")
+US_REGEX = re.compile("^united states of america*")
 
 for firm in firmnames:   
         
@@ -454,6 +484,9 @@ for firm in firmnames:
     orbissearch = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "input#search")))
     if firm[1] == '':
         matched_firms.append(["", firm[0], firm[1]])
+        if firmnames.index(firm)%100 == 0 or firmnames.index(firm) == len(firmnames)-1:
+            if firmnames.index(firm) != 0:
+                export_batch(browser)
         continue
         
     orbissearch.send_keys(f"{firm[1]}, United States of America")
@@ -464,24 +497,56 @@ for firm in firmnames:
     # If pop-up shows up to add new search to current selection of erase current selection
     #Search for firm name, if no firm with name then move to next element in list
     try:    
-        firstresult = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "#quicksearch-results > ul > li:nth-child(1)")))
-        orbisname = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "#quicksearch-results > ul > li:nth-child(1) > a > div.column.column-flex > div.column.column-name > p.name"))).text
+        results = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "#quicksearch-results > ul"))).text.split("\n")
+        us_results = []
+        for i in range(len(results)):
+            if US_REGEX.match(results[i].lower()):
+                us_results.append([results[i-1]])
+        temp = results
+        position = 1
+        for p in us_results:
+            for q in temp:
+                if p[0] == q:
+                    p.append(position)
+                    ind = temp.index(q)
+                    temp = temp[ind+1:len(temp)]
+                    break
+                #All firms have orbis ID, so add 1 to position if encountered
+                if ORBIS_ID.match(q):
+                    position += 1
+        us_results = [x for x in us_results if len(x) == 2]
+        if len(us_results) == 0:
+            matched_firms.append(["", firm[0], firm[1]])
+            if firmnames.index(firm)%100 == 0 or firmnames.index(firm) == len(firmnames)-1:
+                if firmnames.index(firm) != 0:
+                    export_batch(browser)
+            continue
+        elif len(us_results) == 1:
+            chosen_result = [[us_results[0][1], us_results[0][0]]]
+        else:
+            chosen_result = [[us_results[0][1], us_results[0][0]]]
+            max_val = SequenceMatcher(None, replace_all(us_results[0][0].lower(), match_dict), replace_all(firm[0].lower(), match_dict)).ratio()
+            for i in range(1, len(us_results)):
+                match_ratio = SequenceMatcher(None, replace_all(us_results[i][0].lower(), match_dict), replace_all(firm[0].lower(), match_dict)).ratio()
+                if max_val < match_ratio:
+                    chosen_result = [[us_results[i][1], us_results[i][0]]]
+                    max_val = match_ratio
+                elif max_val == match_ratio:
+                    chosen_result.append([us_results[i][1], us_results[i][0]])
+                
+        print(chosen_result[0][1])
+        chosen_result_el = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, f"#quicksearch-results > ul > li:nth-child({chosen_result[0][0]})")))
+        orbisname = chosen_result[1][0] 
         matched_firms.append([orbisname, firm[0], firm[1]])
-        firstresult.click()
+        chosen_result_el.click()
         
     #If no search matches, continue to next name on list
     except TimeoutException:
         matched_firms.append(["", firm[0], firm[1]])
-        continue
-    
+            
     if firmnames.index(firm)%100 == 0 or firmnames.index(firm) == len(firmnames)-1:
         if firmnames.index(firm) != 0:
-            print('Exporting...')
-            export_df(browser)
-            print(f"{firmnames.index(firm)} firms completed. File exported.")
-        # save_firms(browser, svname)
-            revsearch = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR,"body > section.side-main > div > ul > li.search > a")))
-            revsearch.click()
+            export_batch(browser)
     
     time.sleep(3)    
         
@@ -493,7 +558,7 @@ for firm in firmnames:
 for i in matched_firms:
     i.append(SequenceMatcher(None, replace_all(i[1].lower(), match_dict), replace_all(i[0].lower(), match_dict)).ratio())
     df = pd.DataFrame(matched_firms, columns = ['orbis_name', 'ustr_name', 'search_term', 'match_ratio'])
-    df.to_csv(r'C:\Users\F0064WK\Downloads\crosswalk_1.csv')
+    df.to_csv(r'C:\Users\F0064WK\Downloads\crosswalk_2_unmatched.csv')
     #export_df(browser)
     
     
